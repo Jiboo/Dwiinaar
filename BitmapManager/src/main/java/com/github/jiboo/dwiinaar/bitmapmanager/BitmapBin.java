@@ -6,6 +6,8 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.github.jiboo.dwiinaar.bitmapmanager.utils.BitmapUtils;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -40,27 +42,6 @@ public abstract class BitmapBin {
      */
     public abstract
     void gc();
-
-    protected BitmapBin() {}
-    protected static BitmapBin dInstance;
-
-    /**
-     * Return the unique instance of the BitmapBin.
-     */
-    public static @NonNull
-    BitmapBin getInstance() {
-        if(dInstance != null)
-            return dInstance;
-
-        if(Build.VERSION.SDK_INT >= 19)
-            dInstance = new BitmapBin19();
-        else if(Build.VERSION.SDK_INT >= 11)
-            dInstance = new BitmapBin11();
-        else
-            dInstance = new BitmapBin10();
-
-        return dInstance;
-    }
 
     // API LEVEL 10 and lower
     // Not possible to reuse with thus API levels, only create/recycle.
@@ -98,12 +79,7 @@ public abstract class BitmapBin {
 
             @Override
             public boolean equals(Object o) {
-                if(o == null || !(o instanceof BitmapBin11Key))
-                    return false;
-
-                final BitmapBin11Key other = (BitmapBin11Key)o;
-
-                return other.dConfig == dConfig && other.dWidth == dWidth && other.dHeight == dHeight;
+                return o != null && o instanceof BitmapBin11Key && o.hashCode() == hashCode();
             }
 
             @Override
@@ -167,7 +143,7 @@ public abstract class BitmapBin {
 
         @Override public synchronized @NonNull
         Bitmap claim(int width, int height, @NonNull Bitmap.Config config) throws OutOfMemoryError {
-            final int required = width * height * getConfigSize(config);
+            final int required = width * height * BitmapUtils.getConfigByteSize(config);
             final Queue<Bitmap> match = getMatch(required);
             if(match != null) {
                 final Bitmap bmp = match.poll();
@@ -212,21 +188,6 @@ public abstract class BitmapBin {
             dBitmaps.clear();
         }
 
-        protected static
-        int getConfigSize(@NonNull Bitmap.Config config) {
-            switch(config) {
-                case ALPHA_8:
-                    return 1;
-                case ARGB_4444:
-                case RGB_565:
-                    return 2;
-                case ARGB_8888:
-                    return 4;
-                default:
-                    throw new IllegalArgumentException("Illegal configuration");
-            }
-        }
-
         protected @Nullable
         Queue<Bitmap> getMatch(int required) {
             final Queue<Bitmap> perfectMatch = dBitmaps.get(required);
@@ -256,4 +217,24 @@ public abstract class BitmapBin {
             return v;
         }
     }
+
+    protected static BitmapBin dInstance;
+    static {
+        if(Build.VERSION.SDK_INT >= 19)
+            dInstance = new BitmapBin19();
+        else if(Build.VERSION.SDK_INT >= 11)
+            dInstance = new BitmapBin11();
+        else
+            dInstance = new BitmapBin10();
+    }
+
+    /**
+     * Return the unique instance of the BitmapBin.
+     */
+    public static @NonNull
+    BitmapBin getInstance() {
+        return dInstance;
+    }
+
+    protected BitmapBin() {}
 }
