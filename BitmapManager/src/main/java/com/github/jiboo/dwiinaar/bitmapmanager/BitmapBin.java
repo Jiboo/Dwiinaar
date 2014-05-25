@@ -94,7 +94,7 @@ public abstract class BitmapBin {
             }
         }
 
-        Map<BitmapBin11Key, Queue<Bitmap>> dBitmaps = new HashMap<>();
+        final Map<BitmapBin11Key, Queue<Bitmap>> dBitmaps = new HashMap<>();
 
         @Override public synchronized @NonNull
         Bitmap claim(int width, int height, @NonNull Bitmap.Config config) throws OutOfMemoryError {
@@ -139,7 +139,7 @@ public abstract class BitmapBin {
     @TargetApi(Build.VERSION_CODES.KITKAT)
     protected static class BitmapBin19 extends BitmapBin {
 
-        Map<Integer, Queue<Bitmap>> dBitmaps = new TreeMap<>();
+        final Map<Integer, Queue<Bitmap>> dBitmaps = new TreeMap<>();
 
         @Override public synchronized @NonNull
         Bitmap claim(int width, int height, @NonNull Bitmap.Config config) throws OutOfMemoryError {
