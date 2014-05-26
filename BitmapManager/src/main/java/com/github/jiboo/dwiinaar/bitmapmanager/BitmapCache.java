@@ -8,6 +8,7 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.LruCache;
+import android.util.Log;
 
 import com.github.jiboo.dwiinaar.bitmapmanager.utils.BitmapUtils;
 import com.github.jiboo.dwiinaar.bitmapmanager.utils.IOUtils;
@@ -36,6 +37,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class BitmapCache {
 
+    protected static final String LOG_TAG = "BitmapCache";
+    protected static final boolean DEBUG = false;
+
     /**
      * Unique identifier for a bitmap.
      */
@@ -44,7 +48,7 @@ public class BitmapCache {
         Bitmap.Config dPrefConfig = Bitmap.Config.ARGB_8888;
         int dSampleSize = 1;
 
-        protected Key(Context context) {
+        protected Key(@NonNull Context context) {
             dContext = context;
         }
 
@@ -55,7 +59,7 @@ public class BitmapCache {
     protected static class FileKey extends Key {
         protected File dFile;
 
-        public FileKey(Context ctx, @NonNull File file) {
+        public FileKey(@NonNull Context ctx, @NonNull File file) {
             super(ctx);
             dFile = file;
         }
@@ -80,6 +84,11 @@ public class BitmapCache {
 
             return result;
         }
+
+        @Override
+        public String toString() {
+            return "FileKey{" + dFile + ", " + dSampleSize + ", " + dPrefConfig + "}";
+        }
     }
 
     protected static class ResKey extends Key {
@@ -96,7 +105,7 @@ public class BitmapCache {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             return o != null && o instanceof ResKey && o.hashCode() == hashCode();
         }
 
@@ -110,12 +119,17 @@ public class BitmapCache {
 
             return result;
         }
+
+        @Override
+        public String toString() {
+            return "ResKey{" + dResID + ", " + dSampleSize + ", " + dPrefConfig + "}";
+        }
     }
 
     protected static class UrlKey extends Key {
         protected URL dUrl;
 
-        public UrlKey(Context ctx, @NonNull URL url) {
+        public UrlKey(@NonNull Context ctx, @NonNull URL url) {
             super(ctx);
             dUrl = url;
         }
@@ -129,7 +143,7 @@ public class BitmapCache {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             return o != null && o instanceof UrlKey && o.hashCode() == hashCode();
         }
 
@@ -143,6 +157,11 @@ public class BitmapCache {
 
             return result;
         }
+
+        @Override
+        public String toString() {
+            return "UrlKey{" + dUrl + ", " + dSampleSize + ", " + dPrefConfig + "}";
+        }
     }
 
     public static class BitmapDiskCache extends LruCache<URL, File> {
@@ -153,7 +172,7 @@ public class BitmapCache {
             return dInstance;
         }
 
-        public static void initInstance(Context ctx) {
+        public static void initInstance(@NonNull Context ctx) {
             if(ctx.getExternalCacheDir() != null)
                 dInstance = new BitmapDiskCache(new File(ctx.getExternalCacheDir(), "BitmapDiskCache"));
         }
@@ -174,7 +193,8 @@ public class BitmapCache {
                 dDir.delete();
                 dDir.mkdir();
             }
-            load();
+            if(!DEBUG)
+                load();
         }
 
         private void load() {
@@ -187,7 +207,7 @@ public class BitmapCache {
             }
         }
 
-        @Override
+        @Override @Nullable
         protected File create(URL key) {
             File result = null;
             InputStream is = null;
@@ -227,8 +247,11 @@ public class BitmapCache {
         @Override
         protected void entryRemoved(boolean evicted, Key key, Bitmap oldValue, Bitmap newValue) {
             notifyEvicted(key, evicted, oldValue, newValue);
-            if(evicted && oldValue != null && !oldValue.isRecycled())
+            if(evicted && oldValue != null && !oldValue.isRecycled()) {
                 BitmapBin.getInstance().offer(oldValue);
+                if(DEBUG)
+                    Log.d(LOG_TAG, "Offered " + oldValue + " to bin");
+            }
         }
     }
 
@@ -271,9 +294,9 @@ public class BitmapCache {
         Key _key;
         Options _options;
 
-        public DecodeJob(Key key, Options options) {
+        public DecodeJob(@NonNull Key key, @Nullable Options options) {
             _key = key;
-            _options = options;
+            _options = options != null ? options : new Options();
         }
 
         @Override
@@ -282,9 +305,14 @@ public class BitmapCache {
                 sPendingJobs.remove(_key);
             }
 
+            if(DEBUG)
+                Log.d(LOG_TAG, "Started decoding of " + _key);
+
             _options.inSampleSize = _key.dSampleSize;
             _options.inPreferredConfig = _key.dPrefConfig;
             _options.mCancel = false;
+            if(Build.VERSION.SDK_INT >= 11)
+                _options.inBitmap = null;
             if(_options.inTempStorage == null)
                 _options.inTempStorage = sDecodeBuffer.get();
 
@@ -299,6 +327,9 @@ public class BitmapCache {
                     if(Build.VERSION.SDK_INT >= 11) {
                         _options.inBitmap = BitmapBin.getInstance().claim(_options.outWidth, _options.outHeight, _key.dPrefConfig);
 
+                        if(DEBUG)
+                            Log.d(LOG_TAG, "Claimed " + _options.inBitmap + " from bin");
+
                         if(_key.dSampleSize != 1 && Build.VERSION.SDK_INT < 19)
                             throw new RuntimeException("Error, key has sample size, this API level don't support reuse with sample size");
                     }
@@ -311,6 +342,8 @@ public class BitmapCache {
                         if (decoded == null)
                             notifyDecodingError(_key, new RuntimeException("decodeStream returned null"));
                         else {
+                            if(DEBUG)
+                                Log.d(LOG_TAG, "Successfully decoded " + _key);
                             notifyLoaded(_key, decoded);
                             sCache.put(_key, decoded);
                         }
@@ -329,7 +362,7 @@ public class BitmapCache {
     protected static final Map<Key, DecodeJob> sPendingJobs = new HashMap<>();
     protected static final Map<Key, List<Listener>> sListeners = new HashMap<>();
     protected static final BlockingQueue<Runnable> sJobPool = new LinkedBlockingQueue<>();
-    protected static final ThreadPoolExecutor sExecutor = new ThreadPoolExecutor(1, 6, 5, TimeUnit.SECONDS, sJobPool);
+    protected static final ThreadPoolExecutor sExecutor = new ThreadPoolExecutor(0, 5, 5, TimeUnit.SECONDS, sJobPool);
 
     protected static AbsBitmapLruCache sCache;
     static {
@@ -382,9 +415,9 @@ public class BitmapCache {
      * Used to notify when the decoding of the bitmap has finished.
      */
     public interface Listener {
-        void onBitmapLoaded(Key key, Bitmap value);
-        void onBitmapEvicted(Key key, boolean evicted, Bitmap oldValue, Bitmap newValue);
-        void onBitmapDecodingError(Key key, Throwable error);
+        void onBitmapLoaded(@NonNull Key key, Bitmap value);
+        void onBitmapEvicted(@NonNull Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue);
+        void onBitmapDecodingError(@NonNull Key key, @NonNull Throwable error);
     }
 
     /**
@@ -397,21 +430,21 @@ public class BitmapCache {
     /**
      * @return a BitmapCacheKey computed from file
      */
-    public static Key getKey(Context ctx, File file) {
+    public static Key getKey(@NonNull Context ctx, @NonNull File file) {
         return new FileKey(ctx, file);
     }
 
     /**
      * @return a BitmapCacheKey computed from url
      */
-    public static Key getKey(Context ctx, URL url) {
+    public static Key getKey(@NonNull Context ctx, @NonNull URL url) {
         return new UrlKey(ctx, url);
     }
 
     /**
      * @return a BitmapCacheKey computed from resId
      */
-    public static Key getKey(Context ctx, int resId) {
+    public static Key getKey(@NonNull Context ctx, int resId) {
         return new ResKey(ctx, resId);
     }
 
@@ -441,7 +474,7 @@ public class BitmapCache {
     /**
      * Subscribe listener for event on key.
      */
-    public static void subscribe(final Key key, final Listener listener) {
+    public static void subscribe(@NonNull final Key key, @NonNull final Listener listener) {
         synchronized (sListeners) {
             final List<Listener> listeners = sListeners.get(key);
             if (listeners != null)
@@ -457,7 +490,7 @@ public class BitmapCache {
     /**
      * Unsuscribe the listener for events on key.
      */
-    public static void unsubscribe(final Key key, final Listener listener) {
+    public static void unsubscribe(@NonNull final Key key, @NonNull final Listener listener) {
         synchronized (sListeners) {
             final List<Listener> listeners = sListeners.get(key);
             if (listeners != null)
@@ -470,13 +503,29 @@ public class BitmapCache {
     /**
      * Starts the decoding of the bitmap.
     */
-    public static void asyncDecode(final Key key, final Options options) {
+    public static void asyncDecode(@NonNull final Key key, @Nullable final Options options) {
         final Bitmap cached = sCache.get(key);
         if(cached != null) {
             notifyLoaded(key, cached);
         }
-        else {
-            sExecutor.execute(new DecodeJob(key, options));
+        else if(!sPendingJobs.containsKey(key)) {
+            if(DEBUG)
+                Log.d(LOG_TAG, "Adding " + key + " to job queue");
+            final DecodeJob job = new DecodeJob(key, options);
+            sExecutor.execute(job);
+            sPendingJobs.put(key, job);
+        }
+        else if(DEBUG)
+            Log.d(LOG_TAG, "Didn't add " + key);
+    }
+
+    public static void cancelPending(@NonNull final Key key) {
+        final DecodeJob job = sPendingJobs.get(key);
+        if(job != null) {
+            sJobPool.remove(job);
+            sPendingJobs.remove(key);
+            if (DEBUG)
+                Log.d(LOG_TAG, "Canceled " + key);
         }
     }
 }

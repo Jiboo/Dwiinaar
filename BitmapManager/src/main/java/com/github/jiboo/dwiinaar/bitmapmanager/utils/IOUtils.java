@@ -1,5 +1,6 @@
 package com.github.jiboo.dwiinaar.bitmapmanager.utils;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.io.Closeable;
@@ -18,7 +19,7 @@ public class IOUtils {
         }
     }
 
-    public static void copy(final InputStream input, final OutputStream output, byte[] buffer) throws IOException {
+    public static void copy(@NonNull final InputStream input, @NonNull final OutputStream output, @NonNull byte[] buffer) throws IOException {
         int bytesRead;
         while ((bytesRead = input.read(buffer)) != -1) {
             output.write(buffer, 0, bytesRead);

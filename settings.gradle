@@ -1,1 +1,1 @@
-include ':BitmapManager'
+include ':BitmapManager', ':BitmapManagerStressTest'

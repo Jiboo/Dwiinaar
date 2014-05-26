@@ -3,11 +3,15 @@ package com.github.jiboo.dwiinaar.bitmapmanager;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Looper;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -30,7 +34,7 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         super(context, attrs, defStyle);
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.AsyncImageView, defStyle, 0);
-        //dDefault = a.getDrawable(R.styleable.AsyncImageView_loadingDrawable);
+        dDefault = a.getDrawable(R.styleable.AsyncImageView_loadingDrawable);
         a.recycle();
     }
 
@@ -40,12 +44,12 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     }
 
     @Override
-    public void onBitmapLoaded(BitmapCache.Key key, Bitmap value) {
+    public void onBitmapLoaded(@NonNull BitmapCache.Key key, @NonNull Bitmap value) {
         safeSetDrawable(new BitmapDrawable(getResources(), value));
     }
 
     @Override
-    public void onBitmapEvicted(BitmapCache.Key key, boolean evicted, Bitmap oldValue, Bitmap newValue) {
+    public void onBitmapEvicted(@NonNull BitmapCache.Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue) {
         if(evicted)
             safeSetDrawable(dDefault);
         else
@@ -53,24 +57,22 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     }
 
     @Override
-    public void onBitmapDecodingError(BitmapCache.Key key, Throwable error) {
+    public void onBitmapDecodingError(@NonNull BitmapCache.Key key, @NonNull Throwable error) {
         safeSetDrawable(dDefault);
+        Log.e("AsyncImageView", error.getMessage());
     }
 
     protected void pause() {
         dOptions.requestCancelDecode();
+        BitmapCache.cancelPending(dKey);
         safeSetDrawable(dDefault);
-    }
-
-    protected void resume() {
-        if(dKey != null)
-            BitmapCache.asyncDecode(dKey, dOptions);
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        resume();
+        if(dKey != null)
+            BitmapCache.asyncDecode(dKey, dOptions);
     }
 
     @Override
@@ -80,18 +82,22 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     }
 
     @Override
-    public void onFinishTemporaryDetach() {
-        super.onFinishTemporaryDetach();
-        resume();
-    }
-
-    @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         pause();
+        if(dKey != null)
+            BitmapCache.unsubscribe(dKey, this);
     }
 
-    protected void safeSetDrawable(final Drawable drawable) {
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if(getDrawable() == dDefault && dKey != null) {
+            BitmapCache.asyncDecode(dKey, dOptions);
+        }
+    }
+
+    protected void safeSetDrawable(@Nullable final Drawable drawable) {
         if(Looper.myLooper() == Looper.getMainLooper())
             setImageDrawable(drawable);
         else
@@ -103,7 +109,7 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
             });
     }
 
-    public void load(BitmapCache.Key key) {
+    public void load(@NonNull BitmapCache.Key key) {
         if(!key.equals(dKey)) {
             safeSetDrawable(dDefault);
             if (dKey != null)
@@ -113,11 +119,11 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         }
     }
 
-    public void setImageFile(File file) {
+    public void setImageFile(@NonNull File file) {
         load(BitmapCache.getKey(getContext(), file));
     }
 
-    public void setImageURL(URL url) {
+    public void setImageURL(@NonNull URL url) {
         load(BitmapCache.getKey(getContext(), url));
     }
 
@@ -126,6 +132,9 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         load(BitmapCache.getKey(getContext(), resId));
     }
 
+    /**
+     * @deprecated use setImageFile/URL/Resource
+     */
     @Override
     @Deprecated
     public void setImageURI(Uri uri) {

@@ -147,8 +147,10 @@ public abstract class BitmapBin {
             final Queue<Bitmap> match = getMatch(required);
             if(match != null) {
                 final Bitmap bmp = match.poll();
-                bmp.reconfigure(width, height, config);
-                return bmp;
+                if(bmp != null) {
+                    bmp.reconfigure(width, height, config);
+                    return bmp;
+                }
             }
 
             final int pow2width = roundUpPow2(width);
