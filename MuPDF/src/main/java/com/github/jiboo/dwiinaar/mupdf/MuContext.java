@@ -1,14 +1,17 @@
 package com.github.jiboo.dwiinaar.mupdf;
 
-import android.graphics.Bitmap;
-
 public class MuContext {
-    protected int dNativePointer;
+    static {
+        System.loadLibrary("mupdf");
+    }
 
-    protected static native int nNew();
-    protected static native void nFree(int ctx);
+    protected long dNativePointer;
 
-    protected MuContext() {
+    protected static native long nNew();
+
+    protected static native void nFree(long ctx);
+
+    public MuContext() {
         dNativePointer = nNew();
     }
 

@@ -34,15 +34,15 @@ public class MuLinks {
         String named;
     }
 
-    protected int dNativePointer;
-    protected int dNativeDocument;
-    protected int dNativeContext;
+    protected long dNativePointer;
+    protected long dNativeDocument;
+    protected long dNativeContext;
 
     protected List<Entry> dEntries = new ArrayList<>();
 
-    protected native static void nFeedAndFree(int ctx, int links, List<Entry> dst);
+    protected native static void nFeedAndFree(long ctx, long links, List<Entry> dst);
 
-    protected MuLinks(int ctx, int nativePointer) {
+    protected MuLinks(long ctx, long nativePointer) {
         nFeedAndFree(ctx, nativePointer, dEntries);
     }
 

@@ -8,10 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MuOutline {
-    protected int dNativePointer;
-    protected int dNativeContext;
-
-    protected List<Entry> dEntries = new ArrayList<>();
 
     public class Entry {
         Rect rect;
@@ -39,9 +35,14 @@ public class MuOutline {
         String named;
     }
 
-    protected native static void nFeedAndFree(int ctx, int links, List<Entry> dst);
+    protected long dNativePointer;
+    protected long dNativeContext;
 
-    protected MuOutline(int ctx, int nativePointer) {
+    protected List<Entry> dEntries = new ArrayList<>();
+
+    protected native static void nFeedAndFree(long ctx, long links, List<Entry> dst);
+
+    protected MuOutline(long ctx, long nativePointer) {
         nFeedAndFree(ctx, nativePointer, dEntries);
     }
 

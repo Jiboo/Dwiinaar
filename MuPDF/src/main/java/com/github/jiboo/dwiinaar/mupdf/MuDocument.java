@@ -1,24 +1,32 @@
 package com.github.jiboo.dwiinaar.mupdf;
 
-import android.graphics.Rect;
-
 import java.io.File;
+import java.io.FileNotFoundException;
 
 public class MuDocument {
-    protected int dNativePointer;
-    protected int dNativeContext;
+    protected long dNativePointer;
+    protected long dNativeContext;
     protected int dPageCount;
     protected boolean dNeedsPassword;
 
-    protected static native int nOpenDocument(int ctx, String path);
-    protected static native void nClose(int doc);
-    protected static native boolean nAuthenticatePassword(int doc, String password);
-    protected static native int nLoadOutline(int doc);
-    protected static native int nLoadPage(int doc, int index);
+    protected native long nOpenDocument(long ctx, String path);
 
-    public MuDocument(MuContext ctx, File file) {
-        dNativeContext = ctx.dNativePointer;
-        dNativePointer = nOpenDocument(dNativeContext, file.getAbsolutePath());
+    protected static native void nClose(long doc);
+
+    protected static native boolean nAuthenticatePassword(long doc, String password);
+
+    //protected static native int nLoadOutline(int doc);
+    protected static native int nCountPages(long doc);
+
+    protected static native long nLoadPage(long doc, int index);
+
+    public MuDocument(MuContext ctx, File file) throws FileNotFoundException {
+        if (file.exists() && file.isFile()) {
+            dNativeContext = ctx.dNativePointer;
+            dNativePointer = nOpenDocument(dNativeContext, file.getAbsolutePath());
+        } else {
+            throw new FileNotFoundException("Can't find " + file.toString());
+        }
     }
 
     public void recycle() {
@@ -37,9 +45,9 @@ public class MuDocument {
         return dPageCount;
     }
 
-    public MuOutline loadOutline() {
-        return new MuOutline(dNativeContext, (dNativePointer));
-    }
+    /*public MuOutline loadOutline() {
+        return new MuOutline(dNativeContext, nLoadOutline(dNativePointer));
+    }*/
 
     public MuPage loadPage(int index) {
         return new MuPage(dNativeContext, dNativePointer, nLoadPage(dNativePointer, index), index);

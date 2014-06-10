@@ -15,7 +15,7 @@ android {
         buildConfigField "int", "BITMAP_CACHE_SIZE", "32 * 1024 * 1024"
         buildConfigField "int", "DISK_CACHE_SIZE", "32 * 1024 * 1024"
 
-        testPackageName "com.github.jiboo.dwiinaar.bitmapmanager.tests"
+        testApplicationId "com.github.jiboo.dwiinaar.bitmapmanager.tests"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
     }
 

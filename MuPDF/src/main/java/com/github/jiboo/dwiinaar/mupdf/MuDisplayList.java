@@ -1,17 +1,17 @@
 package com.github.jiboo.dwiinaar.mupdf;
 
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
-import android.graphics.Rect;
+import android.graphics.RectF;
 
 public class MuDisplayList {
-    protected int dNativePointer;
-    protected int dNativeContext;
+    protected long dNativePointer;
+    protected long dNativeContext;
 
-    protected static native int nRender(int ctx, int dl, Matrix transform, Rect src, Bitmap dst);
-    protected static native void nFree(int ctx, int dl);
+    protected static native void nRender(long ctx, long dl, float scale, RectF src, Bitmap dst);
 
-    protected MuDisplayList(int ctx, int dl) {
+    protected static native void nFree(long ctx, long dl);
+
+    protected MuDisplayList(long ctx, long dl) {
         dNativeContext = ctx;
         dNativePointer = dl;
     }
@@ -20,7 +20,7 @@ public class MuDisplayList {
         nFree(dNativeContext, dNativePointer);
     }
 
-    public void render(Matrix transform, Rect src, Bitmap dst) {
-        nRender(dNativeContext, dNativePointer, transform, src, dst);
+    public void render(float scale, RectF src, Bitmap dst) {
+        nRender(dNativeContext, dNativePointer, scale, src, dst);
     }
 }
