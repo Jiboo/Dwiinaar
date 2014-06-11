@@ -25,7 +25,7 @@ JNIFUNC(void, MuDisplayList, nRender) (JNIEnv *env, jclass, jlong ctx, jlong dl,
     fz_irect bbox;
     fz_round_rect(&bbox, &bounds);
 
-    bbox.x1 = bbox.x0 + info.stride;
+    //bbox.x1 = bbox.x0 + info.stride;
 
     fz_pixmap *pixmap = fz_new_pixmap_with_bbox_and_data(ctx_cast(ctx), fz_device_rgb(ctx_cast(ctx)), &bbox, (unsigned char *)pixels);
     fz_clear_pixmap_with_value(ctx_cast(ctx), pixmap, 0xff);
