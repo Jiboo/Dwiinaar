@@ -1,1 +1,1 @@
-include ':BitmapManager', ':BitmapManagerStressTest', ':MuPDF'
+include ':BitmapManager', ':BitmapManagerStressTest', ':MuPDF', ':TiledBitmapView'

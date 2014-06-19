@@ -1,5 +1,7 @@
 package com.github.jiboo.dwiinaar.mupdf;
 
+import android.support.annotation.NonNull;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -10,17 +12,12 @@ public class MuDocument {
     protected boolean dNeedsPassword;
 
     protected native long nOpenDocument(long ctx, String path);
-
     protected static native void nClose(long doc);
-
     protected static native boolean nAuthenticatePassword(long doc, String password);
-
-    //protected static native int nLoadOutline(int doc);
     protected static native int nCountPages(long doc);
-
     protected static native long nLoadPage(long doc, int index);
 
-    public MuDocument(MuContext ctx, File file) throws FileNotFoundException {
+    public MuDocument(@NonNull MuContext ctx, @NonNull File file) throws FileNotFoundException {
         if (file.exists() && file.isFile()) {
             dNativeContext = ctx.dNativePointer;
             dNativePointer = nOpenDocument(dNativeContext, file.getAbsolutePath());
@@ -45,11 +42,9 @@ public class MuDocument {
         return dPageCount;
     }
 
-    /*public MuOutline loadOutline() {
-        return new MuOutline(dNativeContext, nLoadOutline(dNativePointer));
-    }*/
-
-    public MuPage loadPage(int index) {
+    public
+    @NonNull
+    MuPage loadPage(int index) throws MuPDFException {
         return new MuPage(dNativeContext, dNativePointer, nLoadPage(dNativePointer, index), index);
     }
 }

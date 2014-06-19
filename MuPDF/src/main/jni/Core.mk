@@ -60,8 +60,6 @@ ifdef MEMENTO
 LOCAL_SRC_FILES += $(MY_ROOT)/fitz/memento.c
 endif
 
-LOCAL_LDLIBS    := -lm -llog -ljnigraphics
-
 LOCAL_SRC_FILES := $(addprefix ../, $(LOCAL_SRC_FILES))
 
 include $(BUILD_STATIC_LIBRARY)

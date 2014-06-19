@@ -2,10 +2,13 @@
     package com.github.jiboo.dwiinaar.mupdf;
     protected static native void nRender(long ctx, long dl, float scale, Rect src, Bitmap dst);
     protected static native void nFree(long ctx, long dl);
+    protected static native ByteBuffer nFlattern(long ctx, long dl);
 */
 
 #include <android/bitmap.h>
+#include "flatbuffers/flatbuffers.h"
 #include "global.h"
+#include "mupdf_generated.h"
 
 JNIFUNC(void, MuDisplayList, nRender) (JNIEnv *env, jclass, jlong ctx, jlong dl, jfloat scale, jobject src, jobject bmp) {
     AndroidBitmapInfo info;
@@ -39,4 +42,7 @@ JNIFUNC(void, MuDisplayList, nRender) (JNIEnv *env, jclass, jlong ctx, jlong dl,
 
 JNIFUNC(void, MuDisplayList, nFree)(JNIEnv *env, jclass, jlong ctx, jlong dl) {
     fz_drop_display_list(ctx_cast(ctx), reinterpret_cast<fz_display_list*>(dl));
+}
+
+JNIFUNC(jobject, MuDisplayList, nFlattern)(JNIEnv *env, jclass, jlong ctx, jlong dl) {
 }

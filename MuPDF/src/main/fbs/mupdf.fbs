@@ -1,0 +1,148 @@
+namespace com.github.jiboo.dwiinaar.mupdf.displaylist;
+
+struct Rect {
+    x0:float;
+    y0:float;
+    x1:float;
+    y1:float;
+}
+
+struct Point {
+    x:float;
+    y:float;
+}
+
+struct Matrix {
+    a:float;
+    b:float;
+    c:float;
+    d:float;
+    e:float;
+    f:float;
+}
+
+enum PathCommand : ubyte {
+    MOVETO, LINETO, CURVETO, CLOSE
+}
+
+table PathNode {
+    cmd:PathCommand;
+    coord:Point;
+}
+
+table Path {
+    begin:Point;
+    nodes:[PathNode];
+}
+
+table TextNode {
+    translate:Point;
+    gid:int;
+    ucs:int;
+}
+
+table Text {
+    font:int;
+    trm:Matrix;
+    nodes:[TextNode];
+}
+
+enum ShadeType : ubyte {
+    FUNCTION,
+    AXIAL, RADIAL,
+    FREE_FORM, LATTICE, COONS_PATCH_MESH, TENSOR_PRODUCTS_MESH
+}
+
+//https://partners.adobe.com/public/developer/en/ps/sdk/TN5600.SmoothShading.pdf
+table Shade {
+    type:ShadeType;
+    bbox:Rect;
+    matrix:Matrix;
+
+    useBackground:int;
+    background:[float];
+
+    useFunction:int;
+    function:[float];
+
+    extend:[int];
+    coords:[float];
+}
+
+table Image {
+    id:uint;
+    maskId:uint;
+}
+
+enum DisplayCommand : ubyte {
+    BEGIN_PAGE,
+    END_PAGE,
+    FILL_PATH,
+    STROKE_PATH,
+    CLIP_PATH,
+    CLIP_STROKE_PATH,
+    FILL_TEXT,
+    STROKE_TEXT,
+    CLIP_TEXT,
+    CLIP_STROKE_TEXT,
+    IGNORE_TEXT,
+    FILL_SHADE,
+    FILL_IMAGE,
+    FILL_IMAGE_MASK,
+    CLIP_IMAGE_MASK,
+    POP_CLIP,
+    BEGIN_MASK,
+    END_MASK,
+    BEGIN_GROUP,
+    END_GROUP,
+    BEGIN_TILE,
+    END_TILE
+}
+
+table BlendMode {
+    mode:int;
+}
+
+union DisplayListItem {
+    Path, Text, Shade, Image, BlendMode
+}
+
+enum DisplayListNodeFlags : ubyte {
+    ISOLATED = 1, KNOCKOUT = 2
+}
+
+enum LineCap : ubyte {
+    BUTT, ROUND,SQUARE, TRIANGLE
+}
+
+enum LineJoin : ubyte {
+    MITER, ROUND, BEVEL
+}
+
+table StrokeState {
+    refs:int;
+    startCap:LineCap;
+    dashCap:LineCap;
+    endCap:LineCap;
+    width:float;
+    miterLimit:float;
+    dashPhase:float;
+    dashList:[float];
+}
+
+table DisplayListNode {
+    cmd:DisplayCommand;
+    rect:Rect;
+    item:DisplayListItem;
+    strokeState:StrokeState;
+    flags:int;
+    ctm:Matrix;
+    alpha:float;
+    color:[float];
+}
+
+table DisplayList {
+    nodes:[DisplayListNode];
+}
+
+root_type DisplayList;
