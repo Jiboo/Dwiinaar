@@ -2,12 +2,6 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.*;
-import java.lang.*;
-import java.util.*;
-
-import flatbuffers.*;
-
 public class ShadeType {
     public static final byte FUNCTION = 0;
     public static final byte AXIAL = 1;

@@ -2,10 +2,11 @@ package com.github.jiboo.dwiinaar.mupdf;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Picture;
 import android.graphics.RectF;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
+import com.github.jiboo.dwiinaar.mupdf.displaylist.DisplayCommand;
 import com.github.jiboo.dwiinaar.mupdf.displaylist.DisplayList;
 import com.github.jiboo.dwiinaar.mupdf.displaylist.DisplayListNode;
 
@@ -19,7 +20,8 @@ public class MuDisplayList {
 
     protected static native void nRender(long ctx, long dl, float scale, RectF src, Bitmap dst);
 
-    protected static native ByteBuffer nFlattern(long ctx, long dl);
+    protected static native byte[] nFlattern(long ctx, long dl);
+
     protected static native void nFree(long ctx, long dl);
 
     protected MuDisplayList(long ctx, long dl) {
@@ -40,7 +42,8 @@ public class MuDisplayList {
     }
 
     public void flattern() throws MuPDFException {
-        dJavaList = DisplayList.getRootAsDisplayList(nFlattern(dNativeContext, dNativePointer), 0);
+        final byte[] buff = nFlattern(dNativeContext, dNativePointer);
+        dJavaList = DisplayList.getRootAsDisplayList(ByteBuffer.wrap(buff), 0);
     }
 
     public void render(@NonNull Canvas canvas) {
@@ -52,6 +55,6 @@ public class MuDisplayList {
     }
 
     private void renderNode(@NonNull Canvas canvas, DisplayListNode node) {
-        // Stuff
+        Log.d("DEBUG", String.valueOf(node.cmd()));
     }
 }

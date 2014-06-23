@@ -1,6 +1,7 @@
 package com.github.jiboo.dwiinaar.mupdf.tests;
 
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -121,5 +122,26 @@ public class MuPDFTests extends InstrumentationTestCase {
             doc.recycle();
             ctx.recycle();
         }
+    }
+
+    public void testRenderCanvas() throws Exception {
+        final MuContext ctx = new MuContext();
+        final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+        final MuPage page = doc.loadPage(0);
+        final MuDisplayList dl = page.renderDisplayList();
+        dl.flattern();
+        final Bitmap target = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888);
+        final Canvas canvas = new Canvas(target);
+
+        long time = SystemClock.elapsedRealtime();
+        dl.render(canvas);
+        long timeEnd = SystemClock.elapsedRealtime();
+        Log.d("TESTS", "testRenderCanvas: " + (timeEnd - time));
+        target.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream("/sdcard/Download/canvas.png"));
+
+        dl.recycle();
+        page.recycle();
+        doc.recycle();
+        ctx.recycle();
     }
 }

@@ -12,9 +12,13 @@ public class MuDocument {
     protected boolean dNeedsPassword;
 
     protected native long nOpenDocument(long ctx, String path);
+
     protected static native void nClose(long doc);
+
     protected static native boolean nAuthenticatePassword(long doc, String password);
+
     protected static native int nCountPages(long doc);
+
     protected static native long nLoadPage(long doc, int index);
 
     public MuDocument(@NonNull MuContext ctx, @NonNull File file) throws FileNotFoundException {

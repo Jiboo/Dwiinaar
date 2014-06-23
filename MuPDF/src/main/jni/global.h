@@ -46,4 +46,8 @@
         return reinterpret_cast<fz_page*>(page);
     }
 
+    inline fz_display_list* dl_cast(const jlong dl) {
+        return reinterpret_cast<fz_display_list*>(dl);
+    }
+
 #endif
