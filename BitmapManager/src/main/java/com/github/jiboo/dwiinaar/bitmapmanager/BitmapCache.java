@@ -1,3 +1,7 @@
+/**
+ * @see https://github.com/Jiboo/Dwiinaar for updates
+ */
+
 package com.github.jiboo.dwiinaar.bitmapmanager;
 
 import android.annotation.TargetApi;
@@ -25,8 +29,10 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -52,7 +58,8 @@ public class BitmapCache {
             dContext = context;
         }
 
-        abstract @NonNull
+        abstract
+        @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException;
     }
 
@@ -64,7 +71,8 @@ public class BitmapCache {
             dFile = file;
         }
 
-        public @NonNull
+        public
+        @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException {
             return new FileInputStream(dFile);
         }
@@ -99,7 +107,8 @@ public class BitmapCache {
             dResID = resID;
         }
 
-        public @NonNull
+        public
+        @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException {
             return dContext.getResources().openRawResource(dResID);
         }
@@ -134,12 +143,15 @@ public class BitmapCache {
             dUrl = url;
         }
 
-        public @NonNull
+        public
+        @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException {
             if(BitmapDiskCache.getInstance() != null && (opts != null && opts.extraInDiskCache)) // Device has sd card
+            {
                 return new FileInputStream(BitmapDiskCache.getInstance().get(dUrl));
-            else
+            } else {
                 return dUrl.openStream();
+            }
         }
 
         @Override
@@ -167,14 +179,16 @@ public class BitmapCache {
     public static class BitmapDiskCache extends LruCache<URL, File> {
         protected static BitmapDiskCache dInstance;
 
-        public static @Nullable
+        public static
+        @Nullable
         BitmapDiskCache getInstance() {
             return dInstance;
         }
 
         public static void initInstance(@NonNull Context ctx) {
-            if(ctx.getExternalCacheDir() != null)
+            if (ctx.getExternalCacheDir() != null) {
                 dInstance = new BitmapDiskCache(new File(ctx.getExternalCacheDir(), "BitmapDiskCache"));
+            }
         }
 
         protected File dDir;
@@ -193,8 +207,9 @@ public class BitmapCache {
                 dDir.delete();
                 dDir.mkdir();
             }
-            if(!DEBUG)
+            if (!DEBUG) {
                 load();
+            }
         }
 
         private void load() {
@@ -207,7 +222,8 @@ public class BitmapCache {
             }
         }
 
-        @Override @Nullable
+        @Override
+        @Nullable
         protected File create(URL key) {
             File result = null;
             InputStream is = null;
@@ -216,7 +232,7 @@ public class BitmapCache {
                 final File cacheFile = new File(dDir, URLEncoder.encode(key.toString(), "UTF-8"));
                 os = new FileOutputStream(cacheFile);
                 is = key.openStream();
-                IOUtils.copy(is, os, dBuffer.get());
+                IOUtils.copy(is, os, dBuffer.get()); //FIXME Need a way to cancel decoding when we're downloading the image.
                 result = cacheFile;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -234,8 +250,9 @@ public class BitmapCache {
 
         @Override
         protected void entryRemoved(boolean evicted, URL key, File oldValue, File newValue) {
-            if (evicted && oldValue != null)
+            if (evicted && oldValue != null) {
                 oldValue.delete();
+            }
         }
     }
 
@@ -249,8 +266,9 @@ public class BitmapCache {
             notifyEvicted(key, evicted, oldValue, newValue);
             if(evicted && oldValue != null && !oldValue.isRecycled()) {
                 BitmapBin.getInstance().offer(oldValue);
-                if(DEBUG)
+                if (DEBUG) {
                     Log.d(LOG_TAG, "Offered " + oldValue + " to bin");
+                }
             }
         }
     }
@@ -305,16 +323,19 @@ public class BitmapCache {
                 sPendingJobs.remove(_key);
             }
 
-            if(DEBUG)
+            if (DEBUG) {
                 Log.d(LOG_TAG, "Started decoding of " + _key);
+            }
 
             _options.inSampleSize = _key.dSampleSize;
             _options.inPreferredConfig = _key.dPrefConfig;
             _options.mCancel = false;
-            if(Build.VERSION.SDK_INT >= 11)
+            if (Build.VERSION.SDK_INT >= 11) {
                 _options.inBitmap = null;
-            if(_options.inTempStorage == null)
+            }
+            if (_options.inTempStorage == null) {
                 _options.inTempStorage = sDecodeBuffer.get();
+            }
 
             InputStream is = null;
             try {
@@ -327,11 +348,13 @@ public class BitmapCache {
                     if(Build.VERSION.SDK_INT >= 11) {
                         _options.inBitmap = BitmapBin.getInstance().claim(_options.outWidth, _options.outHeight, _key.dPrefConfig);
 
-                        if(DEBUG)
+                        if (DEBUG) {
                             Log.d(LOG_TAG, "Claimed " + _options.inBitmap + " from bin");
+                        }
 
-                        if(_key.dSampleSize != 1 && Build.VERSION.SDK_INT < 19)
+                        if (_key.dSampleSize != 1 && Build.VERSION.SDK_INT < 19) {
                             throw new RuntimeException("Error, key has sample size, this API level don't support reuse with sample size");
+                        }
                     }
 
                     is = new ReusableBufferedInputStream(_key.getStream(_options), sReadBuffer.get());
@@ -339,11 +362,13 @@ public class BitmapCache {
                     final Bitmap decoded = BitmapFactory.decodeStream(is, null, _options);
 
                     if(!_options.mCancel) {
-                        if (decoded == null)
+                        if (decoded == null) {
                             notifyDecodingError(_key, new RuntimeException("decodeStream returned null"));
+                        }
                         else {
-                            if(DEBUG)
+                            if (DEBUG) {
                                 Log.d(LOG_TAG, "Successfully decoded " + _key);
+                            }
                             notifyLoaded(_key, decoded);
                             sCache.put(_key, decoded);
                         }
@@ -360,19 +385,21 @@ public class BitmapCache {
     }
 
     protected static final Map<Key, DecodeJob> sPendingJobs = new HashMap<>();
-    protected static final Map<Key, List<Listener>> sListeners = new HashMap<>();
+    protected static final Map<Key, Set<Listener>> sListeners = new HashMap<>();
     protected static final BlockingQueue<Runnable> sJobPool = new LinkedBlockingQueue<>();
     protected static final ThreadPoolExecutor sExecutor = new ThreadPoolExecutor(0, 5, 5, TimeUnit.SECONDS, sJobPool);
 
     protected static AbsBitmapLruCache sCache;
+
     static {
         final int size = BuildConfig.BITMAP_CACHE_SIZE;
-        if(Build.VERSION.SDK_INT >= 19)
+        if (Build.VERSION.SDK_INT >= 19) {
             sCache = new BitmapLruCache19(size);
-        else if(Build.VERSION.SDK_INT >= 12)
+        } else if (Build.VERSION.SDK_INT >= 12) {
             sCache = new BitmapLruCache12(size);
-        else
+        } else {
             sCache = new BitmapLruCache10(size);
+        }
     }
 
     protected static final ThreadLocal<byte[]> sReadBuffer = new ThreadLocal<byte[]>() {
@@ -388,26 +415,29 @@ public class BitmapCache {
     };
 
     protected static void notifyLoaded(Key key, Bitmap value) {
-        final List<Listener> listeners = sListeners.get(key);
+        final Set<Listener> listeners = sListeners.get(key);
         if(listeners != null) {
-            for (Listener listener : listeners)
+            for (Listener listener : listeners) {
                 listener.onBitmapLoaded(key, value);
+            }
         }
     }
 
     protected static void notifyDecodingError(Key key, Throwable value) {
-        final List<Listener> listeners = sListeners.get(key);
+        final Set<Listener> listeners = sListeners.get(key);
         if(listeners != null) {
-            for (Listener listener : listeners)
+            for (Listener listener : listeners) {
                 listener.onBitmapDecodingError(key, value);
+            }
         }
     }
 
     protected static void notifyEvicted(Key key, boolean evicted, Bitmap oldValue, Bitmap newValue) {
-        final List<Listener> listeners = sListeners.get(key);
+        final Set<Listener> listeners = sListeners.get(key);
         if(listeners != null) {
-            for (Listener listener : listeners)
+            for (Listener listener : listeners) {
                 listener.onBitmapEvicted(key, evicted, oldValue, newValue);
+            }
         }
     }
 
@@ -416,7 +446,9 @@ public class BitmapCache {
      */
     public interface Listener {
         void onBitmapLoaded(@NonNull Key key, Bitmap value);
+
         void onBitmapEvicted(@NonNull Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue);
+
         void onBitmapDecodingError(@NonNull Key key, @NonNull Throwable error);
     }
 
@@ -476,11 +508,12 @@ public class BitmapCache {
      */
     public static void subscribe(@NonNull final Key key, @NonNull final Listener listener) {
         synchronized (sListeners) {
-            final List<Listener> listeners = sListeners.get(key);
-            if (listeners != null)
+            final Set<Listener> listeners = sListeners.get(key);
+            if (listeners != null) {
                 listeners.add(listener);
+            }
             else {
-                sListeners.put(key, new ArrayList<Listener>() {{
+                sListeners.put(key, new HashSet<Listener>() {{
                     add(listener);
                 }});
             }
@@ -492,40 +525,49 @@ public class BitmapCache {
      */
     public static void unsubscribe(@NonNull final Key key, @NonNull final Listener listener) {
         synchronized (sListeners) {
-            final List<Listener> listeners = sListeners.get(key);
-            if (listeners != null)
+            final Set<Listener> listeners = sListeners.get(key);
+            if (listeners != null) {
                 listeners.remove(listener);
-            if(listeners.isEmpty())
-                sListeners.remove(key);
+                if (listeners.isEmpty()) {
+                    sListeners.remove(key);
+                }
+            }
         }
     }
 
     /**
      * Starts the decoding of the bitmap.
-    */
+     */
     public static void asyncDecode(@NonNull final Key key, @Nullable final Options options) {
         final Bitmap cached = sCache.get(key);
         if(cached != null) {
             notifyLoaded(key, cached);
+        } else {
+            synchronized (sPendingJobs) {
+                if (!sPendingJobs.containsKey(key)) {
+                    if (DEBUG) {
+                        Log.d(LOG_TAG, "Adding " + key + " to job queue");
+                    }
+                    final DecodeJob job = new DecodeJob(key, options);
+                    sExecutor.execute(job);
+                    sPendingJobs.put(key, job);
+                } else if (DEBUG) {
+                    Log.d(LOG_TAG, "Didn't add " + key);
+                }
+            }
         }
-        else if(!sPendingJobs.containsKey(key)) {
-            if(DEBUG)
-                Log.d(LOG_TAG, "Adding " + key + " to job queue");
-            final DecodeJob job = new DecodeJob(key, options);
-            sExecutor.execute(job);
-            sPendingJobs.put(key, job);
-        }
-        else if(DEBUG)
-            Log.d(LOG_TAG, "Didn't add " + key);
     }
 
     public static void cancelPending(@NonNull final Key key) {
-        final DecodeJob job = sPendingJobs.get(key);
-        if(job != null) {
-            sJobPool.remove(job);
-            sPendingJobs.remove(key);
-            if (DEBUG)
-                Log.d(LOG_TAG, "Canceled " + key);
+        synchronized (sPendingJobs) {
+            final DecodeJob job = sPendingJobs.get(key);
+            if (job != null) {
+                sJobPool.remove(job);
+                sPendingJobs.remove(key);
+                if (DEBUG) {
+                    Log.d(LOG_TAG, "Canceled " + key);
+                }
+            }
         }
     }
 }

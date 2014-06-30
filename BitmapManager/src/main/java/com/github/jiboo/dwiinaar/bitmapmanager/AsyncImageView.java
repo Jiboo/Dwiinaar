@@ -1,3 +1,7 @@
+/**
+ * @see https://github.com/Jiboo/Dwiinaar for updates
+ */
+
 package com.github.jiboo.dwiinaar.bitmapmanager;
 
 import android.content.Context;
@@ -43,17 +47,22 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         setImageDrawable(dDefault = ctx.getResources().getDrawable(defaultResID));
     }
 
+    protected Drawable transformDrawable(Bitmap value) {
+        return new BitmapDrawable(getResources(), value);
+    }
+
     @Override
     public void onBitmapLoaded(@NonNull BitmapCache.Key key, @NonNull Bitmap value) {
-        safeSetDrawable(new BitmapDrawable(getResources(), value));
+        safeSetDrawable(transformDrawable(value));
     }
 
     @Override
     public void onBitmapEvicted(@NonNull BitmapCache.Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue) {
-        if(evicted)
+        if (evicted) {
             safeSetDrawable(dDefault);
-        else
-            safeSetDrawable(new BitmapDrawable(getResources(), newValue));
+        } else {
+            safeSetDrawable(transformDrawable(newValue));
+        }
     }
 
     @Override
@@ -62,17 +71,25 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         Log.e("AsyncImageView", error.getMessage());
     }
 
-    protected void pause() {
+    public void pause() {
         dOptions.requestCancelDecode();
         BitmapCache.cancelPending(dKey);
         safeSetDrawable(dDefault);
     }
 
+    public void load() {
+        if (dKey != null) {
+            load(dKey);
+        }
+    }
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if(dKey != null)
+        if (dKey != null) {
+            BitmapCache.subscribe(dKey, this);
             BitmapCache.asyncDecode(dKey, dOptions);
+        }
     }
 
     @Override
@@ -85,35 +102,38 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         pause();
-        if(dKey != null)
+        if (dKey != null) {
             BitmapCache.unsubscribe(dKey, this);
+        }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if(getDrawable() == dDefault && dKey != null) {
+        if (getDrawable() == dDefault && dKey != null) {
             BitmapCache.asyncDecode(dKey, dOptions);
         }
     }
 
     protected void safeSetDrawable(@Nullable final Drawable drawable) {
-        if(Looper.myLooper() == Looper.getMainLooper())
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             setImageDrawable(drawable);
-        else
+        } else {
             post(new Runnable() {
                 @Override
                 public void run() {
                     setImageDrawable(drawable);
                 }
             });
+        }
     }
 
     public void load(@NonNull BitmapCache.Key key) {
-        if(!key.equals(dKey)) {
+        if (!key.equals(dKey)) {
             safeSetDrawable(dDefault);
-            if (dKey != null)
+            if (dKey != null) {
                 BitmapCache.unsubscribe(dKey, this);
+            }
             BitmapCache.subscribe(dKey = key, this);
             BitmapCache.asyncDecode(key, dOptions);
         }
