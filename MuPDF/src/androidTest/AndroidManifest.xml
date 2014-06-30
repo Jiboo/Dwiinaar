@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.github.jiboo.dwiinaar.mupdf">
 
-    <!-- For unit tests, can't run tests from AS for now so I keep everything in the main, i'll switch to androidTest soon, hopefully -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 

@@ -2,10 +2,11 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.ByteBuffer;
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
 
-import flatbuffers.FlatBufferBuilder;
-import flatbuffers.Table;
+import flatbuffers.*;
 
 public class PathNode extends Table {
     public PathNode __init(int _i, ByteBuffer _bb) {
@@ -19,13 +20,18 @@ public class PathNode extends Table {
         return o != 0 ? bb.get(o + bb_pos) : 0;
     }
 
-    public Point coord() {
-        return coord(new Point());
+    public Point coord(int j) {
+        return coord(new Point(), j);
     }
 
-    public Point coord(Point obj) {
+    public Point coord(Point obj, int j) {
         int o = __offset(6);
-        return o != 0 ? obj.__init(o + bb_pos, bb) : null;
+        return o != 0 ? obj.__init(__vector(o) + j * 8, bb) : null;
+    }
+
+    public int coordLength() {
+        int o = __offset(6);
+        return o != 0 ? __vector_len(o) : 0;
     }
 
     public static void startPathNode(FlatBufferBuilder builder) {
@@ -37,7 +43,11 @@ public class PathNode extends Table {
     }
 
     public static void addCoord(FlatBufferBuilder builder, int coord) {
-        builder.addStruct(1, coord, 0);
+        builder.addOffset(1, coord, 0);
+    }
+
+    public static void startCoordVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems);
     }
 
     public static int endPathNode(FlatBufferBuilder builder) {

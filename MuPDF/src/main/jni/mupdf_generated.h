@@ -192,19 +192,19 @@ STRUCT_END(Matrix, 24);
 
 struct PathNode : private flatbuffers::Table {
   uint8_t cmd() const { return GetField<uint8_t>(4, 0); }
-  const Point *coord() const { return GetStruct<const Point *>(6); }
+  const flatbuffers::Vector<const Point *> *coord() const { return GetPointer<const flatbuffers::Vector<const Point *> *>(6); }
 };
 
 struct PathNodeBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_cmd(uint8_t cmd) { fbb_.AddElement<uint8_t>(4, cmd, 0); }
-  void add_coord(const Point *coord) { fbb_.AddStruct(6, coord); }
+  void add_coord(flatbuffers::Offset<flatbuffers::Vector<const Point *>> coord) { fbb_.AddOffset(6, coord); }
   PathNodeBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   flatbuffers::Offset<PathNode> Finish() { return flatbuffers::Offset<PathNode>(fbb_.EndTable(start_, 2)); }
 };
 
-inline flatbuffers::Offset<PathNode> CreatePathNode(flatbuffers::FlatBufferBuilder &_fbb, uint8_t cmd, const Point *coord) {
+inline flatbuffers::Offset<PathNode> CreatePathNode(flatbuffers::FlatBufferBuilder &_fbb, uint8_t cmd, flatbuffers::Offset<flatbuffers::Vector<const Point *>> coord) {
   PathNodeBuilder builder_(_fbb);
   builder_.add_coord(coord);
   builder_.add_cmd(cmd);
@@ -408,8 +408,7 @@ struct DisplayListNode : private flatbuffers::Table {
   const StrokeState *strokeState() const { return GetPointer<const StrokeState *>(12); }
   int32_t flags() const { return GetField<int32_t>(14, 0); }
   const Matrix *ctm() const { return GetStruct<const Matrix *>(16); }
-  float alpha() const { return GetField<float>(18, 0); }
-  const flatbuffers::Vector<float> *color() const { return GetPointer<const flatbuffers::Vector<float> *>(20); }
+  const flatbuffers::Vector<int32_t> *color() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(18); }
 };
 
 struct DisplayListNodeBuilder {
@@ -422,16 +421,14 @@ struct DisplayListNodeBuilder {
   void add_strokeState(flatbuffers::Offset<StrokeState> strokeState) { fbb_.AddOffset(12, strokeState); }
   void add_flags(int32_t flags) { fbb_.AddElement<int32_t>(14, flags, 0); }
   void add_ctm(const Matrix *ctm) { fbb_.AddStruct(16, ctm); }
-  void add_alpha(float alpha) { fbb_.AddElement<float>(18, alpha, 0); }
-  void add_color(flatbuffers::Offset<flatbuffers::Vector<float>> color) { fbb_.AddOffset(20, color); }
+  void add_color(flatbuffers::Offset<flatbuffers::Vector<int32_t>> color) { fbb_.AddOffset(18, color); }
   DisplayListNodeBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
-  flatbuffers::Offset<DisplayListNode> Finish() { return flatbuffers::Offset<DisplayListNode>(fbb_.EndTable(start_, 9)); }
+  flatbuffers::Offset<DisplayListNode> Finish() { return flatbuffers::Offset<DisplayListNode>(fbb_.EndTable(start_, 8)); }
 };
 
-inline flatbuffers::Offset<DisplayListNode> CreateDisplayListNode(flatbuffers::FlatBufferBuilder &_fbb, uint8_t cmd, const Rect *rect, uint8_t item_type, flatbuffers::Offset<void> item, flatbuffers::Offset<StrokeState> strokeState, int32_t flags, const Matrix *ctm, float alpha, flatbuffers::Offset<flatbuffers::Vector<float>> color) {
+inline flatbuffers::Offset<DisplayListNode> CreateDisplayListNode(flatbuffers::FlatBufferBuilder &_fbb, uint8_t cmd, const Rect *rect, uint8_t item_type, flatbuffers::Offset<void> item, flatbuffers::Offset<StrokeState> strokeState, int32_t flags, const Matrix *ctm, flatbuffers::Offset<flatbuffers::Vector<int32_t>> color) {
   DisplayListNodeBuilder builder_(_fbb);
   builder_.add_color(color);
-  builder_.add_alpha(alpha);
   builder_.add_ctm(ctm);
   builder_.add_flags(flags);
   builder_.add_strokeState(strokeState);

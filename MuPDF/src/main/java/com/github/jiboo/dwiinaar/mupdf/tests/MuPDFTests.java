@@ -1,5 +1,6 @@
 package com.github.jiboo.dwiinaar.mupdf.tests;
 
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -15,10 +16,34 @@ import com.github.jiboo.dwiinaar.mupdf.MuDocument;
 import com.github.jiboo.dwiinaar.mupdf.MuMath;
 import com.github.jiboo.dwiinaar.mupdf.MuPage;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MuPDFTests extends InstrumentationTestCase {
+
+    private File testDocuments;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        AssetManager assetManager = getInstrumentation().getContext().getAssets();
+        testDocuments = new File(getInstrumentation().getContext().getExternalCacheDir(), "documents");
+        if (!testDocuments.exists())
+            testDocuments.mkdir();
+        for (String name : assetManager.list("documents")) {
+            final File file = new File(testDocuments, name);
+            InputStream is = assetManager.open("documents/" + name);
+            OutputStream os = new FileOutputStream(file);
+            IOUtils.copy(is, os);
+            IOUtils.closeQuietly(is);
+            IOUtils.closeQuietly(os);
+        }
+    }
+
     public void testContextCreation() throws Exception {
         final MuContext ctx = new MuContext();
         ctx.recycle();
@@ -26,7 +51,7 @@ public class MuPDFTests extends InstrumentationTestCase {
 
     public void testOpenDocument() throws Exception {
         final MuContext ctx = new MuContext();
-        final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+        final MuDocument doc = new MuDocument(ctx, new File(testDocuments, "blendmode.pdf"));
         doc.recycle();
         ctx.recycle();
     }
@@ -38,7 +63,7 @@ public class MuPDFTests extends InstrumentationTestCase {
         Log.d("TESTS", "testRenderPage context creation: " + (timeEnd - time));
 
         time = SystemClock.elapsedRealtime();
-        final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+        final MuDocument doc = new MuDocument(ctx, new File(testDocuments, "blendmode.pdf"));
         timeEnd = SystemClock.elapsedRealtime();
         Log.d("TESTS", "testRenderPage open document: " + (timeEnd - time));
 
@@ -70,7 +95,7 @@ public class MuPDFTests extends InstrumentationTestCase {
 
     public void testRenderTile() throws Exception {
         final MuContext ctx = new MuContext();
-        final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+        final MuDocument doc = new MuDocument(ctx, new File(testDocuments, "blendmode.pdf"));
         final MuPage page = doc.loadPage(0);
         final MuDisplayList dl = page.renderDisplayList();
         final int tileSize = 100;
@@ -109,7 +134,7 @@ public class MuPDFTests extends InstrumentationTestCase {
         if (Build.VERSION.SDK_INT >= 19) {
             //Check if reconfigured bitmap woudln't work with fz_new_pixmap_with_bbox_and_data
             final MuContext ctx = new MuContext();
-            final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+            final MuDocument doc = new MuDocument(ctx, new File(testDocuments, "blendmode.pdf"));
             final MuPage page = doc.loadPage(0);
             final RectF bounds = new RectF();
             page.getBounds(bounds);
@@ -126,17 +151,21 @@ public class MuPDFTests extends InstrumentationTestCase {
 
     public void testRenderCanvas() throws Exception {
         final MuContext ctx = new MuContext();
-        final MuDocument doc = new MuDocument(ctx, new File("/sdcard/Download/blendmode.pdf"));
+        final MuDocument doc = new MuDocument(ctx, new File(testDocuments, "shapes.pdf"));
         final MuPage page = doc.loadPage(0);
         final MuDisplayList dl = page.renderDisplayList();
-        dl.flattern();
-        final Bitmap target = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888);
+        final Bitmap target = Bitmap.createBitmap(600, 600, Bitmap.Config.ARGB_8888);
         final Canvas canvas = new Canvas(target);
 
         long time = SystemClock.elapsedRealtime();
-        dl.render(canvas);
+        dl.flattern();
         long timeEnd = SystemClock.elapsedRealtime();
-        Log.d("TESTS", "testRenderCanvas: " + (timeEnd - time));
+        Log.d("TESTS", "testRenderCanvas flattern: " + (timeEnd - time));
+
+        time = SystemClock.elapsedRealtime();
+        dl.render(canvas);
+        timeEnd = SystemClock.elapsedRealtime();
+        Log.d("TESTS", "testRenderCanvas render: " + (timeEnd - time));
         target.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream("/sdcard/Download/canvas.png"));
 
         dl.recycle();

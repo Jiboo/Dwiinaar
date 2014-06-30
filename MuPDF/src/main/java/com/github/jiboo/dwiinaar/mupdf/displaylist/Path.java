@@ -2,10 +2,11 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.ByteBuffer;
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
 
-import flatbuffers.FlatBufferBuilder;
-import flatbuffers.Table;
+import flatbuffers.*;
 
 public class Path extends Table {
     public Path __init(int _i, ByteBuffer _bb) {

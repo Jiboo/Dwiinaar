@@ -2,6 +2,12 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
+
+import flatbuffers.*;
+
 public class DisplayCommand {
     public static final byte BEGIN_PAGE = 0;
     public static final byte END_PAGE = 1;

@@ -1,4 +1,5 @@
 namespace com.github.jiboo.dwiinaar.mupdf.displaylist;
+//namespace mupdf;
 
 struct Rect {
     x0:float;
@@ -27,7 +28,7 @@ enum PathCommand : ubyte {
 
 table PathNode {
     cmd:PathCommand;
-    coord:Point;
+    coord:[Point];
 }
 
 table Path {
@@ -137,8 +138,7 @@ table DisplayListNode {
     strokeState:StrokeState;
     flags:int;
     ctm:Matrix;
-    alpha:float;
-    color:[float];
+    color:[int];
 }
 
 table DisplayList {

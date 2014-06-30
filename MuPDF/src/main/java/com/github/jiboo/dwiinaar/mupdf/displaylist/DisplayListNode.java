@@ -2,10 +2,11 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.ByteBuffer;
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
 
-import flatbuffers.FlatBufferBuilder;
-import flatbuffers.Table;
+import flatbuffers.*;
 
 public class DisplayListNode extends Table {
     public DisplayListNode __init(int _i, ByteBuffer _bb) {
@@ -61,23 +62,18 @@ public class DisplayListNode extends Table {
         return o != 0 ? obj.__init(o + bb_pos, bb) : null;
     }
 
-    public float alpha() {
+    public int color(int j) {
         int o = __offset(18);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0;
-    }
-
-    public float color(int j) {
-        int o = __offset(20);
-        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+        return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0;
     }
 
     public int colorLength() {
-        int o = __offset(20);
+        int o = __offset(18);
         return o != 0 ? __vector_len(o) : 0;
     }
 
     public static void startDisplayListNode(FlatBufferBuilder builder) {
-        builder.startObject(9);
+        builder.startObject(8);
     }
 
     public static void addCmd(FlatBufferBuilder builder, byte cmd) {
@@ -108,12 +104,8 @@ public class DisplayListNode extends Table {
         builder.addStruct(6, ctm, 0);
     }
 
-    public static void addAlpha(FlatBufferBuilder builder, float alpha) {
-        builder.addFloat(7, alpha, 0);
-    }
-
     public static void addColor(FlatBufferBuilder builder, int color) {
-        builder.addOffset(8, color, 0);
+        builder.addOffset(7, color, 0);
     }
 
     public static void startColorVector(FlatBufferBuilder builder, int numElems) {

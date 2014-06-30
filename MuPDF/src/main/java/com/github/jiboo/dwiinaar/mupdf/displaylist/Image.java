@@ -2,10 +2,11 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.ByteBuffer;
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
 
-import flatbuffers.FlatBufferBuilder;
-import flatbuffers.Table;
+import flatbuffers.*;
 
 public class Image extends Table {
     public Image __init(int _i, ByteBuffer _bb) {

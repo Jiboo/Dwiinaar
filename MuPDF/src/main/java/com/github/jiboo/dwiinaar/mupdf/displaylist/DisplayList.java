@@ -2,11 +2,11 @@
 
 package com.github.jiboo.dwiinaar.mupdf.displaylist;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.nio.*;
+import java.lang.*;
+import java.util.*;
 
-import flatbuffers.FlatBufferBuilder;
-import flatbuffers.Table;
+import flatbuffers.*;
 
 public class DisplayList extends Table {
     public static DisplayList getRootAsDisplayList(ByteBuffer _bb, int offset) {
