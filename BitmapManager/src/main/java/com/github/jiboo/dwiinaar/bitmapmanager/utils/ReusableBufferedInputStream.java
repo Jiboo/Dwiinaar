@@ -26,6 +26,7 @@ import java.io.InputStream;
 /**
  * A BufferedOutputStream working on a provided buffer.
  * It was made to not allocate buffers with BufferedInputStream and BitmapFactory.
+ *
  * @see java.io.BufferedOutputStream
  */
 public class ReusableBufferedInputStream extends FilterInputStream {
@@ -58,12 +59,12 @@ public class ReusableBufferedInputStream extends FilterInputStream {
     /**
      * Constructs a new {@code BufferedInputStream}, providing {@code in} with {@code size} bytes
      * of buffer.
-     *
+     * <p/>
      * <p><strong>Warning:</strong> passing a null source creates a closed
      * {@code BufferedInputStream}. All read operations on such a stream will
      * fail with an IOException.
      *
-     * @param in the {@code InputStream} the buffer reads from.
+     * @param in     the {@code InputStream} the buffer reads from.
      * @param buffer the working buffer.
      * @throws IllegalArgumentException if {@code size <= 0}.
      */
@@ -101,8 +102,7 @@ public class ReusableBufferedInputStream extends FilterInputStream {
      * Closes this stream. The source stream is closed and any resources
      * associated with it are released.
      *
-     * @throws IOException
-     *             if an error occurs while closing this stream.
+     * @throws IOException if an error occurs while closing this stream.
      */
     @Override
     public void close() throws IOException {
@@ -148,14 +148,13 @@ public class ReusableBufferedInputStream extends FilterInputStream {
      * buffer may be increased in size to allow {@code readlimit} number of
      * bytes to be supported.
      *
-     * @param readlimit
-     *            the number of bytes that can be read before the mark is
-     *            invalidated.
+     * @param readlimit the number of bytes that can be read before the mark is
+     *                  invalidated.
      * @see #reset()
      */
     @Override
     public synchronized void mark(int readlimit) {
-        if(readlimit > buf.length)
+        if (readlimit > buf.length)
             throw new IllegalArgumentException("Readlimit too big for current buffer");
         marklimit = readlimit;
         markpos = pos;
@@ -181,9 +180,8 @@ public class ReusableBufferedInputStream extends FilterInputStream {
      * it is filled from the source stream and the first byte is returned.
      *
      * @return the byte read or -1 if the end of the source stream has been
-     *         reached.
-     * @throws IOException
-     *             if this stream is closed or another IOException occurs.
+     * reached.
+     * @throws IOException if this stream is closed or another IOException occurs.
      */
     @Override
     public synchronized int read() throws IOException {
@@ -214,7 +212,8 @@ public class ReusableBufferedInputStream extends FilterInputStream {
         return -1;
     }
 
-    @Override public synchronized int read(@NonNull byte[] buffer, int byteOffset, int byteCount) throws IOException {
+    @Override
+    public synchronized int read(@NonNull byte[] buffer, int byteOffset, int byteCount) throws IOException {
         // Use local ref since buf may be invalidated by an unsynchronized
         // close()
         byte[] localBuf = buf;
@@ -288,10 +287,9 @@ public class ReusableBufferedInputStream extends FilterInputStream {
     /**
      * Resets this stream to the last marked location.
      *
-     * @throws IOException
-     *             if this stream is closed, no mark has been set or the mark is
-     *             no longer valid because more than {@code readlimit} bytes
-     *             have been read since setting the mark.
+     * @throws IOException if this stream is closed, no mark has been set or the mark is
+     *                     no longer valid because more than {@code readlimit} bytes
+     *                     have been read since setting the mark.
      * @see #mark(int)
      */
     @Override
@@ -310,12 +308,10 @@ public class ReusableBufferedInputStream extends FilterInputStream {
      * {@code read} will not return these bytes unless {@code reset} is
      * used.
      *
-     * @param byteCount
-     *            the number of bytes to skip. {@code skip} does nothing and
-     *            returns 0 if {@code byteCount} is less than zero.
+     * @param byteCount the number of bytes to skip. {@code skip} does nothing and
+     *                  returns 0 if {@code byteCount} is less than zero.
      * @return the number of bytes actually skipped.
-     * @throws IOException
-     *             if this stream is closed or another IOException occurs.
+     * @throws IOException if this stream is closed or another IOException occurs.
      */
     @Override
     public synchronized long skip(long byteCount) throws IOException {

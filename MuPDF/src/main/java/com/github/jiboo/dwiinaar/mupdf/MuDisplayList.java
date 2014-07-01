@@ -4,9 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.drawable.PictureDrawable;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.github.jiboo.dwiinaar.mupdf.displaylist.DisplayCommand;
 import com.github.jiboo.dwiinaar.mupdf.displaylist.DisplayList;
@@ -19,8 +17,6 @@ import com.github.jiboo.dwiinaar.mupdf.displaylist.PathNode;
 import com.github.jiboo.dwiinaar.mupdf.displaylist.Point;
 
 import java.nio.ByteBuffer;
-
-import flatbuffers.Table;
 
 public class MuDisplayList {
     protected long dNativePointer;

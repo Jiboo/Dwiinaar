@@ -16,11 +16,10 @@
 
 package flatbuffers;
 
-import java.lang.String;
-import java.util.Arrays;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 // Class that helps you build a FlatBuffer.
 // See the section "Use in Java" in the main FlatBuffers documentation.

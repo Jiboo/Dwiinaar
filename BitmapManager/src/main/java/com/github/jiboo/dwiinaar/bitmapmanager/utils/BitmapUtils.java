@@ -4,9 +4,8 @@ import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 
 public class BitmapUtils {
-    public static
-    int getConfigByteSize(@NonNull Bitmap.Config config) {
-        switch(config) {
+    public static int getConfigByteSize(@NonNull Bitmap.Config config) {
+        switch (config) {
             case ALPHA_8:
                 return 1;
             case ARGB_4444:

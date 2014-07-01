@@ -10,7 +10,6 @@ import android.widget.GridView;
 
 import com.github.jiboo.dwiinaar.bitmapmanager.AsyncImageView;
 import com.github.jiboo.dwiinaar.bitmapmanager.BitmapCache;
-import com.github.jiboo.dwiinaar.mupdf.MuContext;
 
 import java.net.MalformedURLException;
 import java.net.URL;

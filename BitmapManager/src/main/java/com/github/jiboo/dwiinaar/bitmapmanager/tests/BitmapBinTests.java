@@ -22,7 +22,7 @@ public class BitmapBinTests extends InstrumentationTestCase {
     }
 
     public void testReuse() throws Exception {
-        if(Build.VERSION.SDK_INT >= 11) {
+        if (Build.VERSION.SDK_INT >= 11) {
             final BitmapBin bin = BitmapBin.getInstance();
             bin.gc();
 
@@ -54,8 +54,7 @@ public class BitmapBinTests extends InstrumentationTestCase {
         bin.offer(bmp2);
     }
 
-    protected static
-    int roundUpPow2(int v) {
+    protected static int roundUpPow2(int v) {
         // http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
         v--;
         v |= v >> 1;
