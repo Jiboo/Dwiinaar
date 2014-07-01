@@ -12,6 +12,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Looper;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -19,8 +20,21 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.URL;
 
+/**
+ * Asynchronous version of ImageView.
+ * Care:
+ * If you don't specify (hardcode) any width/height in LayoutParams, your view will probably return a 0/0 size after the first measure pass
+ * as no drawable may be attached at that time. In a ListView, for example, this might be a problem as the ListView will try to create
+ * as many 0/0 items.
+ * <p/>
+ * Usage:
+ * Use it as a normal ImageView, setImageURL/File/Resource/Uri will load your image asynchronously.
+ * You can override transformDrawable to wrap the BitmapDrawable that will be set when it's loaded.
+ * In XML use the attribute loadingDrawable to set a default drawable will you are loading.
+ */
 public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     protected Drawable dDefault;
     protected BitmapCache.Key dKey;
@@ -47,9 +61,9 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         setImageDrawable(dDefault = ctx.getResources().getDrawable(defaultResID));
     }
 
-    protected Drawable transformDrawable(Bitmap value) {
-        return new BitmapDrawable(getResources(), value);
-    }
+    /////////////////////////////////////
+    // Cache events
+    /////////////////////////////////////
 
     @Override
     public void onBitmapLoaded(@NonNull BitmapCache.Key key, @NonNull Bitmap value) {
@@ -71,17 +85,9 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         Log.e("AsyncImageView", error.getMessage());
     }
 
-    public void pause() {
-        dOptions.requestCancelDecode();
-        BitmapCache.cancelPending(dKey);
-        safeSetDrawable(dDefault);
-    }
-
-    public void load() {
-        if (dKey != null) {
-            load(dKey);
-        }
-    }
+    /////////////////////////////////////
+    // View lifecycle
+    /////////////////////////////////////
 
     @Override
     protected void onAttachedToWindow() {
@@ -115,7 +121,13 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         }
     }
 
+    /////////////////////////////////////
+    // Utils
+    /////////////////////////////////////
+
     protected void safeSetDrawable(@Nullable final Drawable drawable) {
+        // The callbacks from the cache are called from an other thread, in this case we'll need to post the setImageDrawable
+        // This method is just for convenience
         if (Looper.myLooper() == Looper.getMainLooper()) {
             setImageDrawable(drawable);
         } else {
@@ -128,6 +140,25 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         }
     }
 
+    /////////////////////////////////////
+    // Public API
+    /////////////////////////////////////
+
+    /**
+     * Override this to intercept when the cache loading event and wrap the bitmap returned by the cache.
+     *
+     * @param value the loaded bitmap
+     * @return a drawable that will be set to this ImageView
+     */
+    protected
+    @NonNull
+    Drawable transformDrawable(@NonNull Bitmap value) {
+        return new BitmapDrawable(getResources(), value);
+    }
+
+    /**
+     * Load a new aribtrary key, prefer setImageURL/File/Resource/Uri if you don't know what you're doing.
+     */
     public void load(@NonNull BitmapCache.Key key) {
         if (!key.equals(dKey)) {
             safeSetDrawable(dDefault);
@@ -139,25 +170,58 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
         }
     }
 
-    public void setImageFile(@NonNull File file) {
-        load(BitmapCache.getKey(getContext(), file));
-    }
-
-    public void setImageURL(@NonNull URL url) {
-        load(BitmapCache.getKey(getContext(), url));
-    }
-
-    @Override
-    public void setImageResource(int resId) {
-        load(BitmapCache.getKey(getContext(), resId));
+    /**
+     * Force the reload of the associated cache key (if set).
+     */
+    public void load() {
+        if (dKey != null) {
+            load(dKey);
+        }
     }
 
     /**
-     * @deprecated use setImageFile/URL/Resource
+     * Stop using the loaded bitmap.
+     */
+    public void pause() {
+        dOptions.requestCancelDecode();
+        BitmapCache.cancelPending(dKey);
+        safeSetDrawable(dDefault);
+    }
+
+    /**
+     * @param file to load asynchronously
+     */
+    public void setImageFile(@NonNull File file) {
+        load(BitmapCache.getKey(file));
+    }
+
+    /**
+     * @param url to load asynchronously (if the user has a SD card, the file will be cached on disk)
+     *            TODO Be able to disable disk cache
+     */
+    public void setImageURL(@NonNull URL url) {
+        load(BitmapCache.getKey(url));
+    }
+
+    /**
+     * @param resId to load asynchronously (will be loaded from getContext().getResources())
      */
     @Override
-    @Deprecated
-    public void setImageURI(Uri uri) {
-        super.setImageURI(uri);
+    public void setImageResource(@DrawableRes int resId) {
+        load(BitmapCache.getKey(getContext().getResources(), resId));
+    }
+
+    /**
+     * @param uri to load (can be a local file, a url, or an android resource uri)
+     */
+    @Override
+    public void setImageURI(@NonNull Uri uri) {
+        try {
+            BitmapCache.Key key = BitmapCache.getKey(getContext(), uri);
+            if (key != null)
+                load(key);
+        } catch (FileNotFoundException e) {
+            Log.w("AsyncImageView", "Unable to open content: " + uri, e);
+        }
     }
 }
