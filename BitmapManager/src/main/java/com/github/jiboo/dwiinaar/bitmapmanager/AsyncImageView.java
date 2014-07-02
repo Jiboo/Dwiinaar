@@ -67,22 +67,30 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
 
     @Override
     public void onBitmapLoaded(@NonNull BitmapCache.Key key, @NonNull Bitmap value) {
-        safeSetDrawable(transformDrawable(value));
+        if (key.equals(dKey)) {
+            safeSetDrawable(transformDrawable(value));
+        }
     }
 
     @Override
     public void onBitmapEvicted(@NonNull BitmapCache.Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue) {
-        if (evicted) {
-            safeSetDrawable(dDefault);
-        } else {
-            safeSetDrawable(transformDrawable(newValue));
+        if (key.equals(dKey)) {
+            if (evicted) {
+                // Bitmap evicted but we still need it
+                safeSetDrawable(dDefault);
+            } else {
+                safeSetDrawable(transformDrawable(newValue));
+            }
         }
     }
 
     @Override
     public void onBitmapDecodingError(@NonNull BitmapCache.Key key, @NonNull Throwable error) {
-        safeSetDrawable(dDefault);
-        Log.e("AsyncImageView", error.getMessage());
+        if (key.equals(dKey)) {
+            safeSetDrawable(dDefault);
+            if (error.getMessage() != null)
+                Log.e("AsyncImageView", error.getMessage());
+        }
     }
 
     /////////////////////////////////////
@@ -114,10 +122,10 @@ public class AsyncImageView extends ImageView implements BitmapCache.Listener {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
         if (getDrawable() == dDefault && dKey != null) {
-            BitmapCache.asyncDecode(dKey, dOptions);
+            BitmapCache.asyncDecode(dKey, dOptions); // Trick used to issue a get on LruCache and increase priority for drawn entries
         }
     }
 

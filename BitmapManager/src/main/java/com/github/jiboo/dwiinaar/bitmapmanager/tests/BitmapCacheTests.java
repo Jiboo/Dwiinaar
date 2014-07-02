@@ -2,10 +2,13 @@ package com.github.jiboo.dwiinaar.bitmapmanager.tests;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.support.annotation.NonNull;
 import android.test.InstrumentationTestCase;
 
 import com.github.jiboo.dwiinaar.bitmapmanager.BitmapCache;
 import com.github.jiboo.dwiinaar.bitmapmanager.R;
+
+import java.net.URL;
 
 public class BitmapCacheTests extends InstrumentationTestCase {
 
@@ -22,7 +25,7 @@ public class BitmapCacheTests extends InstrumentationTestCase {
         final BitmapCache.Key key = BitmapCache.getKey(ctx, R.drawable.abc_ic_go);
         final BitmapCache.Listener listener = new BitmapCache.Listener() {
             @Override
-            public void onBitmapLoaded(BitmapCache.Key key, Bitmap value) {
+            public void onBitmapLoaded(@NonNull BitmapCache.Key key, @NonNull Bitmap value) {
                 synchronized (testLock) {
                     testLock.notify();
                 }
@@ -30,7 +33,7 @@ public class BitmapCacheTests extends InstrumentationTestCase {
             }
 
             @Override
-            public void onBitmapEvicted(BitmapCache.Key key, boolean evicted, Bitmap oldValue, Bitmap newValue) {
+            public void onBitmapEvicted(@NonNull BitmapCache.Key key, boolean evicted, @NonNull Bitmap oldValue, Bitmap newValue) {
                 synchronized (testLock) {
                     testLock.notify();
                 }
@@ -38,7 +41,7 @@ public class BitmapCacheTests extends InstrumentationTestCase {
             }
 
             @Override
-            public void onBitmapDecodingError(BitmapCache.Key key, Throwable error) {
+            public void onBitmapDecodingError(@NonNull BitmapCache.Key key, @NonNull Throwable error) {
                 synchronized (testLock) {
                     testLock.notify();
                 }
@@ -53,5 +56,12 @@ public class BitmapCacheTests extends InstrumentationTestCase {
         }
 
         BitmapCache.unsubscribe(key, listener);
+    }
+
+    public void testKeyReconfigure() throws Exception {
+        final BitmapCache.Key key1 = BitmapCache.getKey(new URL("http://foo.bar/test.png"));
+        final BitmapCache.Key key2 = BitmapCache.reconfigure(key1, Bitmap.Config.RGB_565, 4);
+
+        assertNotSame(key1, key2);
     }
 }

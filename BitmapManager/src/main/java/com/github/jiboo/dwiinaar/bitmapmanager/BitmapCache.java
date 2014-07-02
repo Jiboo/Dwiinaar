@@ -54,14 +54,37 @@ public class BitmapCache {
 
     /**
      * Unique identifier for a bitmap.
+     * Keys must be immutable.
      */
-    public static abstract class Key {
-        Bitmap.Config dPrefConfig = Bitmap.Config.ARGB_8888;
-        int dSampleSize = 1;
+    public static abstract class Key implements Cloneable {
+        protected Bitmap.Config dPrefConfig = Bitmap.Config.ARGB_8888;
+        protected int dSampleSize = 1;
 
         abstract
         @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException;
+
+        @Override
+        public Key clone() throws CloneNotSupportedException {
+            return (Key) super.clone();
+        }
+
+        // Useless, but fixes a false positive warning in Android Studio
+        @Override
+        public boolean equals(@Nullable Object o) {
+            return o != null && o instanceof Key && o.hashCode() == hashCode();
+        }
+
+        @Override
+        public int hashCode() {
+            int result = 42;
+
+            result = 31 * result + dPrefConfig.ordinal();
+            result = 31 * result + dSampleSize;
+
+            return result;
+        }
+
     }
 
     protected static class FileKey extends Key {
@@ -69,6 +92,12 @@ public class BitmapCache {
 
         public FileKey(@NonNull File file) {
             dFile = file;
+        }
+
+        public FileKey(@NonNull File file, @NonNull Bitmap.Config config, int sampleSize) {
+            dFile = file;
+            dPrefConfig = config;
+            dSampleSize = sampleSize;
         }
 
         public
@@ -86,8 +115,7 @@ public class BitmapCache {
         public int hashCode() {
             int result = 43;
 
-            result = 31 * result + dPrefConfig.ordinal();
-            result = 31 * result + dSampleSize;
+            result = 31 * result + super.hashCode();
             result = 31 * result + dFile.hashCode();
 
             return result;
@@ -108,6 +136,13 @@ public class BitmapCache {
             dResID = resID;
         }
 
+        public ResKey(@NonNull Resources resources, @DrawableRes int resID, @NonNull Bitmap.Config config, int sampleSize) {
+            dResources = resources;
+            dResID = resID;
+            dPrefConfig = config;
+            dSampleSize = sampleSize;
+        }
+
         public
         @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException {
@@ -121,19 +156,18 @@ public class BitmapCache {
 
         @Override
         public int hashCode() {
-            int result = 45;
+            int result = 44;
 
-            result = 31 * result + dPrefConfig.ordinal();
-            result = 31 * result + dSampleSize;
-            result = 31 * result + dResID;
+            result = 31 * result + super.hashCode();
             result = 31 * result + dResources.hashCode();
+            result = 31 * result + dResID;
 
             return result;
         }
 
         @Override
         public String toString() {
-            return "ResKey{" + dResID + ", " + dSampleSize + ", " + dPrefConfig + "}";
+            return "ResKey{" + dResID + ", " + dResources.toString() + ", " + dSampleSize + ", " + dPrefConfig + "}";
         }
     }
 
@@ -144,12 +178,19 @@ public class BitmapCache {
             dUrl = url;
         }
 
+        public UrlKey(@NonNull URL url, @NonNull Bitmap.Config config, int sampleSize) {
+            dUrl = url;
+            dPrefConfig = config;
+            dSampleSize = sampleSize;
+        }
+
         public
         @NonNull
         InputStream getStream(@Nullable Options opts) throws IOException {
-            if (BitmapDiskCache.getInstance() != null && (opts != null && opts.extraInDiskCache)) // Device has sd card
+            final BitmapDiskCache diskCache = BitmapDiskCache.getInstance();
+            if (diskCache != null && (opts != null && opts.extraInDiskCache)) // Device has sd card
             {
-                return new FileInputStream(BitmapDiskCache.getInstance().get(dUrl));
+                return new FileInputStream(diskCache.get(dUrl));
             } else {
                 return dUrl.openStream();
             }
@@ -162,10 +203,9 @@ public class BitmapCache {
 
         @Override
         public int hashCode() {
-            int result = 44;
+            int result = 45;
 
-            result = 31 * result + dPrefConfig.ordinal();
-            result = 31 * result + dSampleSize;
+            result = 31 * result + super.hashCode();
             result = 31 * result + dUrl.hashCode();
 
             return result;
@@ -311,8 +351,8 @@ public class BitmapCache {
     }
 
     protected static class DecodeJob implements Runnable {
-        Key _key;
-        Options _options;
+        protected Key _key;
+        protected Options _options;
 
         public DecodeJob(@NonNull Key key, @Nullable Options options) {
             _key = key;
@@ -415,29 +455,35 @@ public class BitmapCache {
         }
     };
 
-    protected static void notifyLoaded(Key key, Bitmap value) {
-        final Set<Listener> listeners = sListeners.get(key);
-        if (listeners != null) {
-            for (Listener listener : listeners) {
-                listener.onBitmapLoaded(key, value);
+    protected static void notifyLoaded(@NonNull Key key, @NonNull Bitmap value) {
+        synchronized (sListeners) {
+            final Set<Listener> listeners = sListeners.get(key);
+            if (listeners != null) {
+                for (Listener listener : listeners) {
+                    listener.onBitmapLoaded(key, value);
+                }
             }
         }
     }
 
-    protected static void notifyDecodingError(Key key, Throwable value) {
-        final Set<Listener> listeners = sListeners.get(key);
-        if (listeners != null) {
-            for (Listener listener : listeners) {
-                listener.onBitmapDecodingError(key, value);
+    protected static void notifyDecodingError(@NonNull Key key, @NonNull Throwable value) {
+        synchronized (sListeners) {
+            final Set<Listener> listeners = sListeners.get(key);
+            if (listeners != null) {
+                for (Listener listener : listeners) {
+                    listener.onBitmapDecodingError(key, value);
+                }
             }
         }
     }
 
-    protected static void notifyEvicted(Key key, boolean evicted, Bitmap oldValue, Bitmap newValue) {
-        final Set<Listener> listeners = sListeners.get(key);
-        if (listeners != null) {
-            for (Listener listener : listeners) {
-                listener.onBitmapEvicted(key, evicted, oldValue, newValue);
+    protected static void notifyEvicted(@NonNull Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue) {
+        synchronized (sListeners) {
+            final Set<Listener> listeners = sListeners.get(key);
+            if (listeners != null) {
+                for (Listener listener : listeners) {
+                    listener.onBitmapEvicted(key, evicted, oldValue, newValue);
+                }
             }
         }
     }
@@ -446,7 +492,7 @@ public class BitmapCache {
      * Used to notify when the decoding of the bitmap has finished.
      */
     public interface Listener {
-        void onBitmapLoaded(@NonNull Key key, Bitmap value);
+        void onBitmapLoaded(@NonNull Key key, @NonNull Bitmap value);
 
         void onBitmapEvicted(@NonNull Key key, boolean evicted, @NonNull Bitmap oldValue, @Nullable Bitmap newValue);
 
@@ -495,54 +541,76 @@ public class BitmapCache {
     @Nullable
     Key getKey(@NonNull Context ctx, @NonNull Uri uri) throws FileNotFoundException {
         final String scheme = uri.getScheme();
-        if (scheme.equals(ContentResolver.SCHEME_ANDROID_RESOURCE)) {
-            // Copy pasted from ContentResolver::getResourceId(Uri)
-            String authority = uri.getAuthority();
-            Resources r;
-            if (TextUtils.isEmpty(authority)) {
-                throw new FileNotFoundException("No authority: " + uri);
-            } else {
-                try {
-                    r = ctx.getPackageManager().getResourcesForApplication(authority);
-                } catch (PackageManager.NameNotFoundException ex) {
-                    throw new FileNotFoundException("No package found for authority: " + uri);
+        switch (scheme) {
+            case ContentResolver.SCHEME_ANDROID_RESOURCE:
+                // Copy pasted from ContentResolver::getResourceId(Uri)
+                String authority = uri.getAuthority();
+                Resources r;
+                if (TextUtils.isEmpty(authority)) {
+                    throw new FileNotFoundException("No authority: " + uri);
+                } else {
+                    try {
+                        r = ctx.getPackageManager().getResourcesForApplication(authority);
+                    } catch (PackageManager.NameNotFoundException ex) {
+                        throw new FileNotFoundException("No package found for authority: " + uri);
+                    }
                 }
-            }
-            List<String> path = uri.getPathSegments();
-            if (path == null) {
-                throw new FileNotFoundException("No path: " + uri);
-            }
-            int len = path.size();
-            int id;
-            if (len == 1) {
-                try {
-                    id = Integer.parseInt(path.get(0));
-                } catch (NumberFormatException e) {
-                    throw new FileNotFoundException("Single path segment is not a resource ID: " + uri);
+                List<String> path = uri.getPathSegments();
+                if (path == null) {
+                    throw new FileNotFoundException("No path: " + uri);
                 }
-            } else if (len == 2) {
-                id = r.getIdentifier(path.get(1), path.get(0), authority);
-            } else {
-                throw new FileNotFoundException("More than two path segments: " + uri);
-            }
-            if (id == 0) {
-                throw new FileNotFoundException("No resource found for: " + uri);
-            }
-            return getKey(r, id);
-        } else if (scheme.equals(ContentResolver.SCHEME_FILE)) {
-            final File file = new File(uri.getPath());
-            if (!file.exists())
-                throw new FileNotFoundException("File not found: " + uri.getPath());
-            return getKey(file);
-        } else if (scheme.equals("http")) {
-            try {
-                return getKey(new URL(uri.toString()));
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+                int len = path.size();
+                int id;
+                if (len == 1) {
+                    try {
+                        id = Integer.parseInt(path.get(0));
+                    } catch (NumberFormatException e) {
+                        throw new FileNotFoundException("Single path segment is not a resource ID: " + uri);
+                    }
+                } else if (len == 2) {
+                    id = r.getIdentifier(path.get(1), path.get(0), authority);
+                } else {
+                    throw new FileNotFoundException("More than two path segments: " + uri);
+                }
+                if (id == 0) {
+                    throw new FileNotFoundException("No resource found for: " + uri);
+                }
+                return getKey(r, id);
+            case ContentResolver.SCHEME_FILE:
+                final File file = new File(uri.getPath());
+                if (!file.exists())
+                    throw new FileNotFoundException("File not found: " + uri.getPath());
+                return getKey(file);
+            case "http":
+                try {
+                    return getKey(new URL(uri.toString()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
         }
         return null;
+    }
+
+    /**
+     * Reconfigure a key.
+     *
+     * @param key        the key to mutate (it will be cloned)
+     * @param config     the new bitmap configuration
+     * @param sampleSize the new sample size
+     * @return mutated key
+     */
+    public static
+    @Nullable
+    Key reconfigure(@NonNull final Key key, @NonNull Bitmap.Config config, int sampleSize) {
+        try {
+            final Key clone = key.clone();
+            clone.dPrefConfig = config;
+            clone.dSampleSize = sampleSize;
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
     }
 
     /**
