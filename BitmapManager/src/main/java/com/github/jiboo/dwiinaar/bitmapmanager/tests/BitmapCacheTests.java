@@ -60,7 +60,7 @@ public class BitmapCacheTests extends InstrumentationTestCase {
 
     public void testKeyReconfigure() throws Exception {
         final BitmapCache.Key key1 = BitmapCache.getKey(new URL("http://foo.bar/test.png"));
-        final BitmapCache.Key key2 = BitmapCache.reconfigure(key1, Bitmap.Config.RGB_565, 4);
+        final BitmapCache.Key key2 = BitmapCache.reconfigure(key1, Bitmap.Config.RGB_565, 4, null);
 
         assertNotSame(key1, key2);
     }

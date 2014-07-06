@@ -11,6 +11,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BitmapRegionDecoder;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.DrawableRes;
@@ -59,6 +61,17 @@ public class BitmapCache {
     public static abstract class Key implements Cloneable {
         protected Bitmap.Config dPrefConfig = Bitmap.Config.ARGB_8888;
         protected int dSampleSize = 1;
+        protected Rect dRect = null;
+
+        protected Key() {
+        }
+
+        protected Key(Bitmap.Config prefConfig, int sampleSize, Rect rect) {
+            dPrefConfig = prefConfig;
+            dSampleSize = sampleSize;
+            if (rect != null)
+                dRect = new Rect(rect);
+        }
 
         abstract
         @NonNull
@@ -81,6 +94,8 @@ public class BitmapCache {
 
             result = 31 * result + dPrefConfig.ordinal();
             result = 31 * result + dSampleSize;
+            if (dRect != null)
+                result = 31 * result + dRect.hashCode();
 
             return result;
         }
@@ -94,10 +109,9 @@ public class BitmapCache {
             dFile = file;
         }
 
-        public FileKey(@NonNull File file, @NonNull Bitmap.Config config, int sampleSize) {
+        public FileKey(@NonNull File file, @NonNull Bitmap.Config config, int sampleSize, Rect rect) {
+            super(config, sampleSize, rect);
             dFile = file;
-            dPrefConfig = config;
-            dSampleSize = sampleSize;
         }
 
         public
@@ -136,11 +150,10 @@ public class BitmapCache {
             dResID = resID;
         }
 
-        public ResKey(@NonNull Resources resources, @DrawableRes int resID, @NonNull Bitmap.Config config, int sampleSize) {
+        public ResKey(@NonNull Resources resources, @DrawableRes int resID, @NonNull Bitmap.Config config, int sampleSize, Rect rect) {
+            super(config, sampleSize, rect);
             dResources = resources;
             dResID = resID;
-            dPrefConfig = config;
-            dSampleSize = sampleSize;
         }
 
         public
@@ -178,10 +191,9 @@ public class BitmapCache {
             dUrl = url;
         }
 
-        public UrlKey(@NonNull URL url, @NonNull Bitmap.Config config, int sampleSize) {
+        public UrlKey(@NonNull URL url, @NonNull Bitmap.Config config, int sampleSize, Rect rect) {
+            super(config, sampleSize, rect);
             dUrl = url;
-            dPrefConfig = config;
-            dSampleSize = sampleSize;
         }
 
         public
@@ -384,24 +396,36 @@ public class BitmapCache {
                 is = new ReusableBufferedInputStream(_key.getStream(_options), sReadBuffer.get());
                 _options.inJustDecodeBounds = true;
                 BitmapFactory.decodeStream(is, null, _options);
+                _options.inJustDecodeBounds = false;
 
                 if (!_options.mCancel && _options.outWidth != -1 && _options.outHeight != -1) {
 
+                    // Claim a bitmap for reusing only if we need it
                     if (Build.VERSION.SDK_INT >= 11) {
-                        _options.inBitmap = BitmapBin.getInstance().claim(_options.outWidth, _options.outHeight, _key.dPrefConfig);
+                        if (_key.dRect == null || Build.VERSION.SDK_INT >= 16) {
+                            _options.inBitmap = BitmapBin.getInstance().claim(_options.outWidth, _options.outHeight, _key.dPrefConfig);
 
-                        if (DEBUG) {
-                            Log.d(LOG_TAG, "Claimed " + _options.inBitmap + " from bin");
-                        }
+                            if (DEBUG) {
+                                Log.d(LOG_TAG, "Claimed " + _options.inBitmap + " from bin");
+                            }
 
-                        if (_key.dSampleSize != 1 && Build.VERSION.SDK_INT < 19) {
-                            throw new RuntimeException("Error, key has sample size, this API level don't support reuse with sample size");
+                            if (_key.dSampleSize != 1 && Build.VERSION.SDK_INT < 19) {
+                                throw new RuntimeException("Error, key has sample size, this API level don't support reuse with sample size");
+                            }
                         }
                     }
 
                     is = new ReusableBufferedInputStream(_key.getStream(_options), sReadBuffer.get());
-                    _options.inJustDecodeBounds = false;
-                    final Bitmap decoded = BitmapFactory.decodeStream(is, null, _options);
+
+                    Bitmap decoded;
+
+                    if (_key.dRect == null) {
+                        decoded = BitmapFactory.decodeStream(is, null, _options);
+                    } else {
+                        BitmapRegionDecoder decoder = BitmapRegionDecoder.newInstance(is, false);
+                        decoded = decoder.decodeRegion(_key.dRect, _options);
+                        decoder.recycle();
+                    }
 
                     if (!_options.mCancel) {
                         if (decoded == null) {
@@ -602,11 +626,12 @@ public class BitmapCache {
      */
     public static
     @Nullable
-    Key reconfigure(@NonNull final Key key, @NonNull Bitmap.Config config, int sampleSize) {
+    Key reconfigure(@NonNull final Key key, @NonNull Bitmap.Config config, int sampleSize, Rect rect) {
         try {
             final Key clone = key.clone();
             clone.dPrefConfig = config;
             clone.dSampleSize = sampleSize;
+            clone.dRect = rect != null ? new Rect(rect) : null;
             return clone;
         } catch (CloneNotSupportedException e) {
             return null;
